@@ -5,74 +5,75 @@ const clearBtn = document.getElementById("clear-btn");
 const themeToggle = document.getElementById("theme-toggle");
 
 function updateCounts() {
-const text = noteText.value;
-const characters = text.length;
+    const text = noteText.value;
 
+    const characters = text.length;
 
-const trimmedText = text.trim();
-const words = trimmedText === "" ? 0 : trimmedText.split(/\s+/).length;
+    const trimmedText = text.trim();
 
-charCount.textContent = `${characters} / 200 characters`;
-wordCount.textContent = `${words} words`;
+    const words = trimmedText === ""
+        ? 0
+        : trimmedText.split(/\s+/).length;
 
-charCount.classList.remove("warning", "over");
+    charCount.textContent = `${characters} / 200 characters`;
+    wordCount.textContent = `${words} words`;
 
-if (characters > 200) {
-    charCount.classList.add("over");
-} else if (characters > 180) {
-    charCount.classList.add("warning");
-}
+    charCount.classList.remove("warning", "over");
 
-
+    if (characters > 200) {
+        charCount.classList.add("over");
+    } else if (characters > 180) {
+        charCount.classList.add("warning");
+    }
 }
 
 function clearNote() {
-noteText.value = "";
-localStorage.removeItem("noteDraft");
-updateCounts();
+    noteText.value = "";
+
+    localStorage.removeItem("noteDraft");
+
+    updateCounts();
 }
 
 noteText.addEventListener("input", function () {
-updateCounts();
-localStorage.setItem("noteDraft", noteText.value);
+    updateCounts();
+
+    localStorage.setItem("noteDraft", noteText.value);
 });
 
 clearBtn.addEventListener("click", function () {
-clearNote();
+    clearNote();
 });
 
 noteText.addEventListener("keydown", function (event) {
-if (event.key === "Escape") {
-clearNote();
-}
+    if (event.key === "Escape") {
+        clearNote();
+    }
 });
 
 themeToggle.addEventListener("click", function () {
-document.body.classList.toggle("dark");
+    document.body.classList.toggle("dark");
 
-
-if (document.body.classList.contains("dark")) {
-    themeToggle.textContent = "Light mode";
-    localStorage.setItem("theme", "dark");
-} else {
-    themeToggle.textContent = "Dark mode";
-    localStorage.setItem("theme", "light");
-}
-
-
+    if (document.body.classList.contains("dark")) {
+        themeToggle.textContent = "Light mode";
+        localStorage.setItem("theme", "dark");
+    } else {
+        themeToggle.textContent = "Dark mode";
+        localStorage.setItem("theme", "light");
+    }
 });
 
 const savedDraft = localStorage.getItem("noteDraft");
 
 if (savedDraft !== null) {
-noteText.value = savedDraft;
+    noteText.value = savedDraft;
 }
 
 const savedTheme = localStorage.getItem("theme");
 
 if (savedTheme === "dark") {
-document.body.classList.add("dark");
-themeToggle.textContent = "Light mode";
+    document.body.classList.add("dark");
+    themeToggle.textContent = "Light mode";
 }
 
 updateCounts();

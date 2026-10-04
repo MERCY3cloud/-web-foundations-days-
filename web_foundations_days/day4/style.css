@@ -1,81 +1,81 @@
 :root {
---background: #ffffff;
---text: #222222;
---input-background: #f5f5f5;
---border: #cccccc;
---button-background: #222222;
---button-text: #ffffff;
+    --background: #ffffff;
+    --text: #222222;
+    --input-background: #f5f5f5;
+    --border: #cccccc;
+    --button-background: #222222;
+    --button-text: #ffffff;
 }
 
 body.dark {
---background: #222222;
---text: #ffffff;
---input-background: #333333;
---border: #555555;
---button-background: #ffffff;
---button-text: #222222;
+    --background: #222222;
+    --text: #ffffff;
+    --input-background: #333333;
+    --border: #555555;
+    --button-background: #ffffff;
+    --button-text: #222222;
 }
 
 * {
-  box-sizing: border-box;
-  }
+    box-sizing: border-box;
+}
 
 body {
-margin: 0;
-font-family: Arial, sans-serif;
-background-color: var(--background);
-color: var(--text);
-transition: background-color 0.3s, color 0.3s;
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: var(--background);
+    color: var(--text);
+    transition: background-color 0.3s, color 0.3s;
 }
 
 main {
-max-width: 700px;
-margin: 50px auto;
-padding: 30px;
+    max-width: 700px;
+    margin: 50px auto;
+    padding: 30px;
 }
 
 h1 {
-margin-bottom: 25px;
+    margin-bottom: 25px;
 }
 
 label {
-display: block;
-margin-bottom: 8px;
-font-weight: bold;
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
 }
 
 textarea {
-width: 100%;
-min-height: 200px;
-padding: 15px;
-font-family: inherit;
-font-size: 16px;
-background-color: var(--input-background);
-color: var(--text);
-border: 1px solid var(--border);
-border-radius: 6px;
-resize: vertical;
+    width: 100%;
+    min-height: 200px;
+    padding: 15px;
+    font-family: inherit;
+    font-size: 16px;
+    background-color: var(--input-background);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    resize: vertical;
 }
 
 button {
-padding: 10px 18px;
-margin-right: 10px;
-border: none;
-border-radius: 5px;
-background-color: var(--button-background);
-color: var(--button-text);
-cursor: pointer;
+    padding: 10px 18px;
+    margin-right: 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: var(--button-background);
+    color: var(--button-text);
+    cursor: pointer;
 }
 
 button:hover {
-opacity: 0.8;
+    opacity: 0.8;
 }
 
 .warning {
-color: orange;
+    color: orange;
 }
 
 .over {
-color: red;
-font-weight: bold;
+    color: red;
+    font-weight: bold;
 }
