@@ -1,0 +1,146 @@
+* {
+  box-sizing: border-box;
+  }
+
+body {
+margin: 0;
+font-family: Arial, Helvetica, sans-serif;
+background: #f4f6f8;
+color: #222;
+}
+
+main {
+width: min(100% - 40px, 1000px);
+margin: 50px auto;
+}
+
+h1 {
+margin-bottom: 8px;
+font-size: 2.4rem;
+color: #111;
+}
+
+main::before {
+content: "Browse and search users from the directory";
+display: block;
+color: #666;
+margin-bottom: 30px;
+}
+
+/* Controls */
+
+#load-users {
+padding: 12px 22px;
+border: none;
+border-radius: 7px;
+background: #111;
+color: white;
+font-size: 15px;
+font-weight: 600;
+cursor: pointer;
+transition: transform 0.2s, opacity 0.2s;
+margin-bottom: 20px;
+}
+
+#load-users:hover {
+transform: translateY(-2px);
+opacity: 0.85;
+}
+
+#load-users:disabled {
+opacity: 0.5;
+cursor: not-allowed;
+transform: none;
+}
+
+/* Filter */
+
+label {
+display: block;
+margin-bottom: 7px;
+font-weight: 600;
+}
+
+#filter-input {
+width: 100%;
+padding: 13px 15px;
+border: 1px solid #d5d9dd;
+border-radius: 7px;
+background: white;
+font-size: 16px;
+outline: none;
+margin-bottom: 20px;
+}
+
+#filter-input:focus {
+border-color: #555;
+box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Status */
+
+#status {
+padding: 12px 15px;
+border-radius: 7px;
+background: #e9ecef;
+color: #444;
+margin-bottom: 25px;
+}
+
+/* User cards */
+
+#users-list {
+list-style: none;
+padding: 0;
+margin: 0;
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+gap: 18px;
+}
+
+#users-list li {
+background: white;
+border: 1px solid #e2e5e8;
+border-radius: 10px;
+padding: 22px;
+box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#users-list li:hover {
+transform: translateY(-4px);
+box-shadow: 0 7px 18px rgba(0, 0, 0, 0.1);
+}
+
+#users-list strong {
+display: block;
+font-size: 1.2rem;
+margin-bottom: 15px;
+color: #111;
+}
+
+#users-list p {
+margin: 8px 0;
+color: #555;
+font-size: 0.95rem;
+}
+
+/* Mobile */
+
+@media (max-width: 600px) {
+main {
+width: min(100% - 24px, 1000px);
+margin: 30px auto;
+}
+
+
+h1 {
+    font-size: 2rem;
+}
+
+#users-list {
+    grid-template-columns: 1fr;
+}
+
+
+}
