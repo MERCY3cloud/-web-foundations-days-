@@ -1,0 +1,46 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickNotes API Client</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="api.js" defer></script>
+</head>
+<body>
+    <main class="container">
+        <header class="page-header">
+            <p class="eyebrow">QUICKNOTES SYSTEM DESIGN</p>
+            <h1>My Notes</h1>
+            <p>Load, create, and manage notes through an API.</p>
+        </header>
+
+        <section class="panel">
+            <div class="section-heading">
+                <div>
+                    <h2>Your notes</h2>
+                    <p>Practice API: JSONPlaceholder</p>
+                </div>
+                <button id="load-btn" type="button">Load notes</button>
+            </div>
+
+            <p id="status" role="status" aria-live="polite">Click “Load notes” to get started.</p>
+
+            <form id="note-form">
+                <h2>Create a note</h2>
+
+                <label for="title-input">Title</label>
+                <input id="title-input" name="title" type="text" maxlength="100" required>
+
+                <label for="body-input">Note body (optional)</label>
+                <textarea id="body-input" name="body" rows="4"></textarea>
+
+                <button id="submit-btn" type="submit">Create note</button>
+            </form>
+
+            <ul id="notes-list" aria-label="Notes"></ul>
+        </section>
+    </main>
+</body>
+</html>

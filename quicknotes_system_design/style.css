@@ -1,0 +1,167 @@
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f3f6fb;
+    color: #202b3c;
+    line-height: 1.6;
+}
+
+.container {
+    width: min(900px, 92%);
+    margin: 48px auto;
+}
+
+.page-header {
+    margin-bottom: 28px;
+}
+
+.eyebrow {
+    color: #5273c7;
+    font-size: 0.78rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+h1 {
+    margin: 0;
+    font-size: 2.5rem;
+}
+
+h2 {
+    margin-top: 0;
+}
+
+.panel {
+    padding: 28px;
+    background: #fff;
+    border: 1px solid #e1e7f0;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(30, 50, 80, 0.06);
+}
+
+.section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.section-heading p {
+    color: #6b778a;
+    margin-top: -10px;
+}
+
+button {
+    padding: 11px 18px;
+    border: 0;
+    border-radius: 8px;
+    background: #4567c5;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #324fa5;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#status {
+    padding: 12px;
+    background: #f0f3f8;
+    border-radius: 8px;
+}
+
+#status.success {
+    color: #176b3a;
+    background: #e7f7ed;
+}
+
+#status.error {
+    color: #a32626;
+    background: #fdecec;
+}
+
+#note-form {
+    display: grid;
+    gap: 10px;
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid #e1e7f0;
+}
+
+input,
+textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccd5e3;
+    border-radius: 8px;
+    font: inherit;
+}
+
+input:focus,
+textarea:focus {
+    outline: 2px solid #9eb5ff;
+    border-color: #4567c5;
+}
+
+#submit-btn {
+    justify-self: start;
+    margin-top: 8px;
+}
+
+#notes-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 28px;
+}
+
+.note-item {
+    padding: 18px 0;
+    border-bottom: 1px solid #e1e7f0;
+}
+
+.note-item h3 {
+    margin: 0 0 6px;
+    overflow-wrap: anywhere;
+}
+
+.note-item p {
+    margin: 0;
+    color: #596579;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.delete-btn {
+    margin-top: 12px;
+    background: #b83e4b;
+}
+
+.delete-btn:hover {
+    background: #922c37;
+}
+
+@media (max-width: 600px) {
+    .container {
+        margin: 24px auto;
+    }
+
+    .panel {
+        padding: 18px;
+    }
+
+    .section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
