@@ -1,98 +1,63 @@
-﻿# TicketHub: Event Ticketing System Design
+﻿# TicketHub: Ticketing Website System Design
 
 ## 1. Requirements
 
-TicketHub sells tickets for concerts and events. It has 2 million registered users and must support normal browsing and sudden demand when popular concerts go on sale.
-
 ### Functional requirements
 
-1. Users can register, sign in, and manage their accounts.
-2. Users can browse events and view dates, venues, and prices.
-3. Users can view a seat map and current seat availability.
-4. Users can temporarily hold available seats while checking out.
-5. Users can pay for an order and receive confirmation after successful payment.
-6. Users can view their orders and purchased tickets.
-7. The system releases expired seat holds.
-8. Administrators can create events and manage seating and inventory.
+TicketHub sells tickets for concerts and other events. The system must allow users to:
+- Register, sign in, and manage their accounts.
+- Browse, search, and view upcoming events.
+- View event details, ticket prices, and seat availability.
+- Temporarily hold available seats while completing checkout.
+- Pay for orders and receive confirmation.
+- View their purchased tickets and order history.
+- Cancel or release expired holds according to the booking rules.
+
+Administrators must be able to create events, configure seating and prices, and monitor sales.
 
 ### Non-functional requirements
 
-- **Speed:** Event pages and seat maps should load quickly under normal and peak traffic.
-- **Correctness:** A seat must never be sold to two customers.
-- **Fairness:** A virtual waiting room, queue tokens, rate limits, and purchase limits help provide orderly access and discourage bots.
-- **Availability:** The service should recover gracefully from component failures.
-- **Security:** Use HTTPS, authentication, authorization, validation, and a trusted payment provider. Never store raw payment-card details.
-- **Scalability:** Application servers and background workers should scale horizontally.
-- **Observability:** Monitor latency, errors, queue lengths, payment failures, and database contention.
+- **Speed:** Event pages and seat maps should load quickly. Caching can speed up browsing, while checkout must verify availability against the authoritative database.
+- **Correctness:** A seat must never be sold to two customers for the same event. Payment and order status must remain consistent.
+- **Fairness:** Customers should receive clear, consistent rules for seat holds and checkout. Holds must expire after a defined period so abandoned checkouts do not block other customers indefinitely. Rate limits and a virtual queue can help manage high demand.
+- **Availability:** The website should remain usable during failures and heavy traffic. Failed payments must not incorrectly produce confirmed tickets.
+- **Security:** Use authentication, authorization, encrypted connections, input validation, rate limiting, and a trusted payment provider. Do not store raw payment-card details.
+- **Scalability:** Application servers should be able to scale horizontally as demand increases.
+- **Observability:** Monitor errors, response times, payment failures, database contention, and remaining ticket inventory.
 
-Correctness is more important than accepting every purchase instantly. If the system cannot safely confirm a seat, it should reject or delay the request instead of risking duplicate sales.
-
-## 2. Traffic and Capacity Estimates
-
-### Given facts and assumptions
-
-- Registered users: 2,000,000.
-- Normal daily visitors: 50,000.
-- Each visitor views 10 pages per day.
-- Normal ticket sales: 5,000 per day.
-- During a popular sale, 200,000 people attempt to buy 20,000 seats in 10 minutes.
-- One day has 86,400 seconds.
-- Normal averages are calculated over 24 hours. Real traffic varies by time of day.
-- The sale estimate assumes one initial purchase attempt per person. Retries and additional API requests can increase actual traffic.
+## 2. Traffic Estimates
 
 ### Normal traffic
 
-Daily page requests:
+TicketHub has 2 million registered users. On a normal day, 50,000 people visit and each views 10 pages.
 
-50,000 visitors x 10 pages = 500,000 page requests per day.
+- Daily page views = 50,000 × 10 = 500,000.
+- Average page views per second = 500,000 ÷ 86,400 ≈ 5.8.
+- Normal daily ticket sales = 5,000.
 
-Average page request rate:
+The 5.8 requests per second figure estimates page views, not every request made by the website. Images, scripts, API calls, and other resources can increase total request volume.
 
-500,000 / 86,400 = approximately 5.8 page requests per second.
+### Popular concert sale
 
-Average normal ticket sales:
+During a popular sale, 200,000 people try to buy 20,000 seats within 10 minutes.
 
-5,000 / 86,400 = approximately 0.058 tickets per second.
+- Average purchase attempts per second = 200,000 ÷ 600 ≈ 333.
+- Demand per seat = 200,000 ÷ 20,000 = 10 people per seat.
+- At most 20,000 seats can be sold, assuming all seats are available and each person seeks one seat.
 
-These estimates exclude extra API calls for authentication, event details, seat maps, and payments.
+The sale produces about 333 purchase attempts per second on average, compared with approximately 5.8 page views per second during normal traffic. These figures describe different operations, so they are not a direct like-for-like comparison. The sale also creates a much greater risk of many users competing for the same inventory.
 
-### Popular-sale traffic
+Actual peak traffic may exceed these averages. TicketHub should load-test for bursts, queue excess demand, cache read-heavy pages, and protect the database from excessive simultaneous checkout requests.
 
-Ten minutes equals 600 seconds.
+## 3. API Design
 
-Initial purchase-attempt rate:
-
-200,000 / 600 = approximately 333 purchase attempts per second.
-
-Demand-to-supply ratio:
-
-200,000 potential buyers / 20,000 seats = 10 buyers per seat.
-
-Only 10% of potential buyers can obtain a seat if all 20,000 seats are available and sold.
-
-### Comparison
-
-| Metric | Normal day | Popular sale |
-|---|---:|---:|
-| Visitors or attempted buyers | 50,000/day | 200,000/10 minutes |
-| Page requests or initial purchase attempts | 500,000/day | 200,000/10 minutes |
-| Average calculated rate | 5.8 page requests/second | 333 purchase attempts/second |
-| Main challenge | Everyday browsing | Traffic spikes and seat contention |
-
-The specified sale rate is about 57 times the normal average page-request rate. This compares different request types, so it is a useful capacity comparison rather than an exact like-for-like measurement.
-
-TicketHub should use a waiting room, rate limits, caching, and scalable application servers. The database must remain the final authority for seat availability.
-
-## 3. REST API Design
-
-The API uses JSON and REST conventions. Purchasing endpoints require authentication.
+The API uses JSON over HTTPS. Protected endpoints require authentication. Examples below show the main request and response shapes.
 
 ### Endpoint 1: Browse events
 
-- Method: GET
-- Path: `/api/events`
-- Purpose: Return paginated upcoming events.
-- Success: `200 OK`
+`GET /api/events?search=concert&page=1`
+
+Returns a paginated list of upcoming events.
 
 Example response:
 
@@ -100,382 +65,256 @@ Example response:
 {
   "events": [
     {
-      "id": 101,
-      "name": "Summer Music Festival",
-      "venue": "City Arena",
-      "status": "ON_SALE"
+      "id": 42,
+      "name": "Summer Concert",
+      "date": "2027-01-15",
+      "venue": "City Arena"
     }
   ],
   "page": 1
 }
 ```
 
-### Endpoint 2: View event seats
+### Endpoint 2: View an event's seats
 
-- Method: GET
-- Path: `/api/events/{eventId}/seats`
-- Purpose: Return seat labels, prices, and current availability.
-- Success: `200 OK`
+`GET /api/events/42/seats`
+
+Returns seat identifiers, prices, and availability. The response is informational; the server must recheck availability when a seat is held.
 
 Example response:
 
 ```json
 {
-  "eventId": 101,
+  "event_id": 42,
   "seats": [
-    {"id": 501, "label": "A1", "price": 5000, "status": "AVAILABLE"},
-    {"id": 502, "label": "A2", "price": 5000, "status": "HELD"}
+    {"id": 501, "price": 50, "status": "AVAILABLE"},
+    {"id": 502, "price": 50, "status": "HELD"}
   ]
 }
 ```
-
-The seat map can become outdated immediately. The hold endpoint must verify availability in the database.
 
 ### Endpoint 3: Hold seats
 
-- Method: POST
-- Path: `/api/orders/holds`
-- Purpose: Temporarily hold available seats for the authenticated customer.
-- Success: `201 Created`
+`POST /api/orders/holds`
+
+Requires authentication. The server attempts to reserve the requested seats for a short period, such as five minutes.
 
 Example request:
 
 ```json
 {
-  "eventId": 101,
-  "seatIds": [501],
-  "idempotencyKey": "hold-request-abc"
+  "event_id": 42,
+  "seat_ids": [501]
 }
 ```
 
-Example response:
+Example success response:
 
 ```json
 {
-  "orderId": 9001,
-  "status": "PENDING_PAYMENT",
-  "expiresAt": "2027-06-15T12:05:00Z"
+  "order_id": 9001,
+  "status": "HELD",
+  "expires_at": "2027-01-15T12:05:00Z"
 }
 ```
 
-If a seat is held or sold, return `409 Conflict`. A multi-seat request must hold all requested seats or none of them.
+If a seat is no longer available, the server returns `409 Conflict`. The client must not assume a seat is reserved until the server confirms the hold.
 
 ### Endpoint 4: Pay for an order
 
-- Method: POST
-- Path: `/api/orders/{orderId}/payments`
-- Purpose: Initiate payment through a trusted payment provider.
-- Success: `202 Accepted` while processing, or `200 OK` for an immediate result.
+`POST /api/orders/9001/payments`
+
+Requires authentication and a valid, unexpired order hold. The request contains a payment-provider token and an idempotency key so that retrying the same request does not create duplicate charges.
 
 Example request:
 
 ```json
 {
-  "paymentMethodToken": "provider-token-example",
-  "idempotencyKey": "payment-order-9001"
+  "payment_token": "provider-token",
+  "idempotency_key": "payment-9001-attempt-1"
 }
 ```
 
-Example response:
-
-```json
-{
-  "orderId": 9001,
-  "paymentStatus": "PROCESSING"
-}
-```
-
-The system verifies the provider callback before confirming the order. Duplicate callbacks must not create duplicate purchases.
+The server coordinates with the payment provider and confirms the order only after verified payment success. The response can be `PROCESSING`, `PAID`, or a suitable error. A failed or expired checkout must not issue tickets.
 
 ### Endpoint 5: View an order
 
-- Method: GET
-- Path: `/api/orders/{orderId}`
-- Purpose: Return the authenticated customer's order and payment status.
-- Success: `200 OK`
+`GET /api/orders/9001`
 
-Example response:
-
-```json
-{
-  "orderId": 9001,
-  "status": "CONFIRMED",
-  "totalAmount": 5000,
-  "currency": "KES"
-}
-```
+Returns the authenticated user's order status, items, total, and relevant timestamps. Users cannot view another customer's private order.
 
 ### Endpoint 6: View my tickets
 
-- Method: GET
-- Path: `/api/me/tickets`
-- Purpose: List tickets owned by the authenticated customer.
-- Success: `200 OK`
+`GET /api/me/tickets`
 
-Example response:
+Returns tickets belonging to the authenticated user, including event information, seat details, and ticket identifiers.
 
-```json
-{
-  "tickets": [
-    {
-      "ticketId": 7001,
-      "eventId": 101,
-      "seatId": 501,
-      "status": "VALID"
-    }
-  ]
-}
-```
+Common error responses include `400 Bad Request` for invalid input, `401 Unauthorized` for missing authentication, `403 Forbidden` for insufficient permissions, `404 Not Found` for missing resources, `409 Conflict` for unavailable seats, and `429 Too Many Requests` when rate limits are exceeded.
 
-### Common API errors
+## 4. Data Model
 
-- `400 Bad Request`: Invalid request fields.
-- `401 Unauthorized`: Authentication is required.
-- `403 Forbidden`: The customer cannot access the resource.
-- `404 Not Found`: Event, seat, or order does not exist.
-- `409 Conflict`: Seat is unavailable or the order state has changed.
-- `429 Too Many Requests`: The rate limit was exceeded.
-- `500 Internal Server Error`: Unexpected server error.
+A relational database such as PostgreSQL is suitable because ticket inventory and order state require strong consistency.
 
-## 4. Relational Database Schema
+### Core tables
 
-TicketHub uses PostgreSQL because relational transactions, foreign keys, unique constraints, and row locks help protect ticket inventory.
+**users**
+- `id` — primary key.
+- `name`
+- `email` — unique.
+- `password_hash`
+- `created_at`
 
-### Table 1: users
+**events**
+- `id` — primary key.
+- `name`
+- `description`
+- `venue`
+- `starts_at`
+- `status`
 
-| Column | Type | Purpose |
-|---|---|---|
-| id | BIGINT PRIMARY KEY | Unique user ID |
-| name | VARCHAR(100) NOT NULL | Customer name |
-| email | VARCHAR(255) UNIQUE NOT NULL | Login email |
-| password_hash | VARCHAR(255) NOT NULL | Secure password hash |
-| created_at | TIMESTAMP NOT NULL | Account creation time |
+**seats**
+- `id` — primary key.
+- `event_id` — foreign key to events.
+- `seat_label` — for example, A12.
+- `price`
+- `status` — AVAILABLE, HELD, or SOLD.
+- `hold_expires_at` — nullable timestamp.
+- `held_by_order_id` — nullable foreign key to orders.
 
-### Table 2: events
+A unique constraint on `(event_id, seat_label)` prevents the same seat label from being created twice for one event.
 
-| Column | Type | Purpose |
-|---|---|---|
-| id | BIGINT PRIMARY KEY | Unique event ID |
-| name | VARCHAR(200) NOT NULL | Event name |
-| venue | VARCHAR(200) NOT NULL | Venue |
-| starts_at | TIMESTAMP NOT NULL | Start time |
-| status | VARCHAR(30) NOT NULL | Event sale status |
-| created_at | TIMESTAMP NOT NULL | Creation time |
+**orders**
+- `id` — primary key.
+- `user_id` — foreign key to users.
+- `status` — HELD, PAYMENT_PENDING, PAID, EXPIRED, or CANCELLED.
+- `total_amount`
+- `created_at`
+- `hold_expires_at`
 
-### Table 3: seats
+**order_items**
+- `id` — primary key.
+- `order_id` — foreign key to orders.
+- `seat_id` — foreign key to seats.
+- `price_at_purchase`
 
-Each row represents one seat for one event.
+A unique constraint on `seat_id` in order_items prevents a seat from appearing in multiple orders under this model. If resale or historical ticket transfers are supported, the model must instead enforce uniqueness for active ownership or active sales using an appropriate database constraint.
 
-| Column | Type | Purpose |
-|---|---|---|
-| id | BIGINT PRIMARY KEY | Unique event-seat ID |
-| event_id | BIGINT REFERENCES events(id) | Related event |
-| seat_label | VARCHAR(20) NOT NULL | Label such as A1 |
-| price | NUMERIC(10,2) NOT NULL | Ticket price |
-| status | VARCHAR(20) NOT NULL | AVAILABLE, HELD, or SOLD |
-| held_by_order_id | BIGINT NULL | Order holding the seat |
-| hold_expires_at | TIMESTAMP NULL | Hold expiration time |
-
-A unique constraint on `(event_id, seat_label)` prevents duplicate seat labels within the same event.
-
-### Table 4: orders
-
-| Column | Type | Purpose |
-|---|---|---|
-| id | BIGINT PRIMARY KEY | Unique order ID |
-| user_id | BIGINT REFERENCES users(id) | Customer |
-| status | VARCHAR(30) NOT NULL | PENDING_PAYMENT, CONFIRMED, EXPIRED, or CANCELLED |
-| total_amount | NUMERIC(12,2) NOT NULL | Order total |
-| created_at | TIMESTAMP NOT NULL | Creation time |
-| expires_at | TIMESTAMP NULL | Payment deadline |
-
-### Supporting table: order_items
-
-| Column | Type | Purpose |
-|---|---|---|
-| id | BIGINT PRIMARY KEY | Unique item ID |
-| order_id | BIGINT REFERENCES orders(id) | Parent order |
-| seat_id | BIGINT REFERENCES seats(id) | Related seat |
-| price_at_purchase | NUMERIC(10,2) NOT NULL | Agreed price |
-
-The production design must enforce that a seat cannot belong to two active reservations or completed sales. One approach is a separate active-reservation table with a unique constraint on `seat_id`, while retaining historical order items after cancellation.
-
-### Supporting table: payments
-
-| Column | Type | Purpose |
-|---|---|---|
-| id | BIGINT PRIMARY KEY | Payment attempt ID |
-| order_id | BIGINT REFERENCES orders(id) | Related order |
-| provider_reference | VARCHAR(255) UNIQUE | Provider transaction reference |
-| amount | NUMERIC(12,2) NOT NULL | Amount charged |
-| status | VARCHAR(30) NOT NULL | PENDING, SUCCEEDED, or FAILED |
-| created_at | TIMESTAMP NOT NULL | Creation time |
+**payments**
+- `id` — primary key.
+- `order_id` — foreign key to orders.
+- `provider_reference` — unique payment-provider reference.
+- `amount`
+- `status`
+- `created_at`
 
 ### Relationships
 
 - One user can create many orders.
 - One event has many seats.
 - One order contains one or more order items.
-- Each order item refers to one seat.
-- One order may have multiple payment attempts.
-- Seat status and hold information determine whether inventory can be reserved.
+- Each order item refers to a seat.
+- An order can have multiple payment attempts, but each provider transaction must be recorded and processed idempotently.
 
-## 5. Preventing Double-Booking with Transactions
+Foreign keys maintain referential integrity. Unique constraints protect important business rules even if application code has a bug.
 
-The database, not the browser or cache, must decide who owns a seat. Two customers may see a seat as available at nearly the same time. The server must atomically claim it so only one request succeeds.
+## 5. Preventing Double-Booking
 
-### Transaction logic for holding a seat
+The most important rule is that checking availability and claiming a seat must be an atomic operation. A simple read followed by a later write is unsafe: two requests might both read AVAILABLE before either updates the row.
 
-1. The customer submits a request to hold one or more seats.
-2. The application begins a database transaction.
-3. It locks the requested seat rows using `SELECT ... FOR UPDATE`, acquiring locks in a consistent order to reduce deadlocks.
-4. It checks whether each seat is available or has a safely expired hold.
-5. If every requested seat is available, the application creates a pending order and its order items.
-6. It updates the seats to `HELD`, records the holding order, and sets a hold expiration time.
-7. It commits the transaction only if all requested seats were held successfully.
-8. If any seat is unavailable, the application rolls back the transaction and returns `409 Conflict`.
+TicketHub uses a database transaction, row-level locking, and conditional updates.
 
-This all-or-nothing process prevents a customer from receiving only part of a multi-seat reservation.
+### How a seat hold works
 
-### Example: Two customers request the same seat
+1. The customer requests a seat hold.
+2. The server begins a database transaction.
+3. It locks the requested seat rows using `SELECT ... FOR UPDATE`, in a consistent order when multiple seats are requested.
+4. It checks that each seat is available or that any previous hold has expired and can safely be reclaimed.
+5. It creates the order and order items, updates the seat status to HELD, and records the hold expiration time.
+6. It commits the transaction. If a seat is unavailable, it rolls back and returns a conflict response.
 
-Assume Customer A and Customer B both request seat 501 at nearly the same time.
-
-1. Customer A's transaction locks seat 501 first.
-2. Customer B's transaction must wait for the row lock.
-3. Customer A checks availability, changes the seat to `HELD`, and commits.
-4. Customer B obtains the lock and sees that the seat is already held.
-5. Customer B receives `409 Conflict`; the customer cannot overwrite the first hold.
-
-Only Customer A gets the hold.
-
-### Conditional update as an additional safeguard
-
-A seat can also be claimed with an atomic conditional update:
+Illustrative SQL for claiming an available seat:
 
 ```sql
 UPDATE seats
 SET status = 'HELD',
-    held_by_order_id = :order_id,
-    hold_expires_at = :expires_at
-WHERE id = :seat_id
+    hold_expires_at = NOW() + INTERVAL '5 minutes'
+WHERE id = 501
+  AND event_id = 42
   AND status = 'AVAILABLE';
 ```
 
-The application checks the affected-row count. Exactly one updated row means the claim succeeded. Zero updated rows means the seat was not available under that condition, so the transaction must not treat it as reserved.
+The application must check the number of affected rows. Exactly one row means the seat was claimed by this update; zero means the claim failed. In production, the order association and all related changes must be made in the same transaction. Expired holds must be reclaimed with a safe, conditional transaction rather than a separate unchecked read.
 
-Expired holds require their own safe conditional-update or row-lock logic. The application must not assume a seat is available simply because its displayed expiration time has passed.
+### What happens when two customers compete?
 
-### Payment and confirmation
+Suppose customers A and B request seat 501 simultaneously. A obtains the row lock first and changes the seat to HELD. B must wait for the lock. When B continues, the database state no longer satisfies the availability condition, so B cannot claim the seat. B receives a conflict response and can choose another seat.
 
-A hold may last five minutes. After verified payment success, the application starts a transaction, verifies the order and hold state, and changes the order to `CONFIRMED` and the seats to `SOLD`.
+The database is the authority; a cached seat map is never enough to confirm a booking.
 
-Payment callbacks must be authenticated and idempotent so duplicate notifications cannot confirm an order twice. If payment fails or a hold expires, the system releases the seats safely. A late successful payment must be reconciled and may need to be refunded if the seats have already been sold to another customer.
+### Payment and hold expiration
 
-Database constraints, foreign keys, valid state transitions, and uniqueness rules for active reservations provide additional protection. Application checks alone are not enough.
+Payment processing introduces another challenge because an external payment provider cannot participate in the database transaction. TicketHub should use idempotency keys, a durable payment state, verified provider callbacks, and reconciliation for uncertain outcomes.
 
-### Fairness during the sale
+Before finalizing a purchase, the server must verify that the order still owns the seats and that the hold is valid under the defined checkout policy. It must transition the order and seats consistently. Expiration workers should reclaim only holds that are still expired and have not been finalized. Payment failures must release inventory safely; uncertain payment outcomes must be reconciled before releasing seats in a way that could cause an already-paid order to lose them.
 
-A virtual waiting room and rate limits reduce the number of customers entering checkout simultaneously. Queue tokens and purchase limits help discourage automated abuse.
+Database constraints provide a final safeguard against duplicate active seat allocations.
 
-These mechanisms improve fairness and reduce load, but they do not guarantee seat ownership. The transaction and database constraints remain the final protection against double-booking.
+## 6. Architecture Diagram
 
-## 6. Architecture Diagram and Components
-
-```text
-+----------------------------+
-| Web and Mobile Clients     |
-+-------------+--------------+
-              |
-              v
-+----------------------------+
-| DNS and CDN                |
-| Static and public content  |
-+-------------+--------------+
-              |
-              v
-+----------------------------+
-| Virtual Waiting Room       |
-| Queue tokens and rate limit|
-+-------------+--------------+
-              |
-              v
-+----------------------------+
-| Load Balancer              |
-+-------------+--------------+
-              |
-        +-----+-----+
-        |           |
-        v           v
-+---------------+ +---------------+
-| App Server 1  | | App Server 2  | ... more
-+-------+-------+ +-------+-------+
-        |                 |
-        +--------+--------+
-                 |
-         +-------+----------+
-         |                  |
-         v                  v
-+----------------+  +-------------------+
-| Cache          |  | Primary Database  |
-| Public event   |  | Transactions      |
-| information    |  | Seat ownership    |
-+----------------+  +---------+---------+
-                              |
-                              v
-                    +-------------------+
-                    | Read Replica      |
-                    | Browsing queries  |
-                    +-------------------+
-
-App Servers ---> Job Queue ---> Background Workers
-      |
-      +--------> Payment Provider
-                  and verified callbacks
+```mermaid
+flowchart TD
+    U[Customers] --> CDN[CDN and Static Cache]
+    CDN --> LB[Load Balancer and Virtual Queue]
+    LB --> API[Stateless API Servers]
+    API --> CACHE[Redis Cache]
+    API --> DB[(PostgreSQL Primary)]
+    API --> PAY[Payment Provider]
+    API --> Q[Message Queue]
+    Q --> WORK[Background Workers]
+    WORK --> DB
+    WORK --> NOTIFY[Email and Ticket Notifications]
+    API --> MON[Logs Metrics and Alerts]
+    WORK --> MON
+    DB --> MON
 ```
 
 ### Component explanations
 
-- **Clients:** Let customers browse events, choose seats, and buy tickets.
-- **DNS and CDN:** Route users to the service and cache static assets and suitable public content.
-- **Virtual waiting room:** Admits customers to checkout at a controlled rate.
-- **Load balancer:** Distributes requests among healthy application servers.
-- **Application servers:** Authenticate users, validate requests, create orders, and coordinate database and payment operations. Multiple stateless instances can scale horizontally.
-- **Cache:** Reduces repeated reads for public event details. It is not the authority for seat ownership or payment status.
-- **Primary database:** Stores authoritative seat, order, and payment state and handles reservation transactions.
-- **Read replica:** Handles suitable browsing queries to reduce primary-database load. Since replication can lag, checkout must verify seats against the primary.
-- **Job queue:** Buffers background work such as confirmation emails and ticket generation.
-- **Background workers:** Process queued jobs with retries and monitoring.
-- **Payment provider:** Processes payments securely and sends verified callbacks to update order state.
+- **Customers:** Browse events, choose seats, and complete checkout.
+- **CDN and static cache:** Serve images, scripts, and public event content near users, reducing load on the application.
+- **Load balancer:** Distributes requests across healthy API servers.
+- **Virtual queue:** Limits the number of customers entering the purchase flow simultaneously and communicates waiting status fairly.
+- **Stateless API servers:** Authenticate requests, enforce business rules, and can scale horizontally.
+- **Redis cache:** Speeds up public event information and temporary non-authoritative data. It must not replace database locking for seat allocation.
+- **PostgreSQL primary:** Stores authoritative inventory, orders, and payment records with transactions and constraints.
+- **Payment provider:** Processes payments securely outside the database transaction.
+- **Message queue and background workers:** Handle notifications, expired holds, reconciliation, and other tasks that do not need to block the customer's request.
+- **Monitoring:** Collects logs, metrics, alerts, latency, errors, and database contention so operators can respond to incidents.
 
 ### Surviving the big sale
 
-TicketHub should scale application servers horizontally, use a waiting room to control checkout admission, and cache popular public event information. Rate limits protect the service from excessive requests, while background queues keep non-essential work out of the critical purchase path.
+TicketHub should cache public event data, autoscale API servers, queue customers during peak demand, rate-limit abusive traffic, and cap concurrent checkout work to protect the database. Requests for the same seat are serialized by database locks and constraints. Queueing reduces overload, but it does not guarantee that every customer gets a ticket. Inventory must never exceed the number of available seats.
 
-The primary database must be load-tested for row-lock contention, transaction latency, and connection limits. Connection pooling and consistent lock ordering help reduce database pressure and deadlocks. Monitoring should track queue length, failed purchases, payment delays, and database performance.
-
-The system must not allow unlimited checkout traffic merely because more web servers can be added. The database's safe processing capacity determines how quickly customers should be admitted. Backups, recovery procedures, and tested failover plans improve resilience.
+The system should be load-tested before major sales and have database backups, health checks, retry limits, and operational dashboards.
 
 ## 7. Trade-offs
 
-### Trade-off 1: Fairness versus immediate access
+### Trade-off 1: Strong consistency versus performance
 
-A waiting room controls traffic and provides a more orderly sale, but customers may have to wait before buying. The design must balance fairness, queue time, usability, and bot prevention.
+Using database transactions and row locks protects seat correctness but can increase waiting time when many customers request the same seats. TicketHub accepts this cost for inventory changes and uses caching only for read-heavy information. Correctness is more important than making an unsafe booking appear faster.
 
-### Trade-off 2: Strong consistency versus speed
+### Trade-off 2: Virtual queue versus immediate access
 
-Database locks and transactions prevent two customers from claiming the same seat, but they add latency when many requests compete for the same inventory. TicketHub should accept some checkout latency to preserve correct ticket ownership.
+A queue smooths demand and helps prevent overload, but some users must wait and the checkout process feels less immediate. TicketHub uses a queue for high-demand sales while allowing normal browsing when capacity permits. Clear status updates and consistent admission rules help make the queue fair.
 
-### Trade-off 3: Short holds versus customer convenience
+### Trade-off 3: Short holds versus checkout flexibility
 
-Short holds free inventory quickly, but customers may lose seats if payment takes too long. Longer holds give customers more time but reduce availability for others. TicketHub should set a reasonable hold duration and handle delayed payments carefully.
+Short holds return abandoned seats to inventory quickly, but customers with slow connections or delayed payment may lose their opportunity. Longer holds improve convenience but leave seats unavailable for longer. A limited hold duration, clear countdown, and careful handling of uncertain payment results balance these concerns.
 
-### Trade-off 4: Caching versus freshness
+### Trade-off 4: Modular services versus operational simplicity
 
-Caching improves speed and reduces database load, but cached information may be stale. Event descriptions can be cached, while seat availability must be checked against the primary database during checkout.
+Separate services and queues can scale independently, but they add deployment and monitoring complexity. Starting with a modular application and a reliable relational database is simpler; components can be separated later when measured demand justifies the added complexity.
 
-## Conclusion
+## 8. Conclusion
 
-TicketHub must combine scalable event browsing with a strongly consistent purchase workflow. Normal traffic averages approximately 5.8 page requests per second, while the specified big-sale period generates about 333 initial purchase attempts per second.
-
-A waiting room, CDN, cache, load balancer, scalable application servers, and background workers help manage traffic. Database transactions, row locks, conditional updates, and uniqueness constraints prevent double-booking. Reliable payment processing, monitoring, retries, and recovery plans protect the platform when demand is highest.
+TicketHub must support normal browsing and large, competitive ticket sales without selling the same seat twice. Traffic estimates guide caching, queueing, capacity planning, and load testing. A clear API and relational data model support the customer journey, while database transactions, row-level locks, conditional updates, and constraints protect inventory correctness. A virtual queue and horizontally scalable application servers help absorb peak demand, and monitoring supports reliable operations. The main design principle is that customer-facing speed and fairness must never override the authoritative rules that prevent overselling.

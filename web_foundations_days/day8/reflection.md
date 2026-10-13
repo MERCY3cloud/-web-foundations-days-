@@ -1,14 +1,7 @@
-\# Day 8 Reflection
+﻿# Day 8 Reflection
 
+The most difficult concept in this course was understanding how multiple requests can happen at the same time and affect the same data. I learned that checking whether a seat is available and updating it later is not enough, because two customers might see the same seat as available. I overcame this by breaking the problem into steps and learning how transactions, row-level locks, conditional updates, and database constraints work together to protect correctness.
 
+Based on the feedback I received on my capstone, I would improve the completeness of my implementation and documentation. I would make sure that every required API operation is implemented and tested, rather than focusing on only the parts that work first. I would also improve error handling, explain the design decisions more clearly, and verify that all required files are saved and pushed to GitHub before submitting. This would make the project easier to review and more reliable for users.
 
-The most difficult concept in this course was understanding how to design a system that remains correct and reliable when many users make requests at the same time. At first, I focused mainly on making the frontend work and sending API requests. However, designing TicketHub helped me understand why a successful response from the frontend is not enough. The backend and database must protect important operations, especially when multiple customers attempt to purchase the same seat. I overcame this challenge by breaking the design into requirements, traffic estimates, API endpoints, data models, architecture, and trade-offs. Working through each section made the relationships between these concepts easier to understand.
-
-
-
-Based on the feedback I received on my QuickNotes capstone, I would improve the completeness of my implementation and documentation. My GET request demonstrated good frontend practices, including a reusable request function, button disabling, and safe rendering with `textContent`. However, my submission lacked the complete POST and DELETE handlers and the three required system design documents. This taught me that a working prototype is not the same as a complete engineering deliverable. In future projects, I will use the rubric as a checklist, implement every required operation, write the documentation, test the application, and verify that all files have been committed and pushed before submitting.
-
-
-
-Next, I want to learn more about backend development, database transactions, automated testing, and deploying applications. I also want to practise designing scalable systems and understanding how real applications handle high traffic, security, and failures. These skills will help me build more reliable software and become a stronger full-stack developer.
-
+Next, I want to learn more about backend development, relational database design, and automated API testing. I also want to practise deploying applications, using logs and monitoring to find problems, and testing how systems behave under heavy traffic. Building and testing a small booking system would help me apply these concepts in practice. My goal is to develop systems that are not only functional but also secure, reliable, and able to handle real-world demand.
